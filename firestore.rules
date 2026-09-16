@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // CMS de la landing: lectura publica, escritura solo desde la consola/admin.
+    match /content/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Cada usuario lee y escribe unicamente sus propios datos y carreras.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /runs/{runId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

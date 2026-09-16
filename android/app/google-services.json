@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "173588335327",
+    "project_id": "laufen-app",
+    "storage_bucket": "laufen-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:173588335327:android:fce39876e2ad88dfbd376a",
+        "android_client_info": {
+          "package_name": "com.laufen.laufen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtj7DcsJQ03eyXX6jdCYrqd4k5oR-cir0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
