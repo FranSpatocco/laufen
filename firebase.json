@@ -1,6 +1,1 @@
-{
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  }
-}
+{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"flutter":{"platforms":{"android":{"default":{"projectId":"laufen-app","appId":"1:173588335327:android:fce39876e2ad88dfbd376a","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"laufen-app","configurations":{"android":"1:173588335327:android:fce39876e2ad88dfbd376a","ios":"1:173588335327:ios:d4f110bea887d0d2bd376a","web":"1:173588335327:web:325d14a34079a74fbd376a"}}}}}}

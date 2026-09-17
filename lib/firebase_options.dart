@@ -62,13 +62,13 @@ class DefaultFirebaseOptions {
     projectId: 'laufen-app',
     storageBucket: 'laufen-app.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAJQH4_S-LAg5Un11S5YJQvHxDGMzl3skk',
     appId: '1:173588335327:ios:d4f110bea887d0d2bd376a',
     messagingSenderId: '173588335327',
     projectId: 'laufen-app',
     storageBucket: 'laufen-app.firebasestorage.app',
+    iosClientId: '173588335327-r54fielp4tkqfbs1hobfa8t2i84ksvmf.apps.googleusercontent.com',
     iosBundleId: 'com.laufen.laufen',
   );
 }

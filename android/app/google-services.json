@@ -12,7 +12,12 @@
           "package_name": "com.laufen.laufen"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "173588335327-6lulnfek3480um7lluekjdnojoivo103.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCtj7DcsJQ03eyXX6jdCYrqd4k5oR-cir0"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "173588335327-6lulnfek3480um7lluekjdnojoivo103.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "173588335327-r54fielp4tkqfbs1hobfa8t2i84ksvmf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.laufen.laufen"
+              }
+            }
+          ]
         }
       }
     }
