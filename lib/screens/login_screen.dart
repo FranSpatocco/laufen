@@ -28,6 +28,20 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await _authService.signInWithGoogle();
+    } catch (e) {
+      setState(() => _errorMessage = _friendlyError(e.toString()));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -118,6 +132,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(_isRegistering
                         ? '¿Ya tenés cuenta? Iniciá sesión'
                         : '¿No tenés cuenta? Registrate'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('o'),
+                      ),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    child: const Text('Continuar con Google'),
                   ),
                 ],
               ),

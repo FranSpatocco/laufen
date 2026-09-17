@@ -15,5 +15,11 @@ class AuthService {
     return _auth.createUserWithEmailAndPassword(email: email, password: password);
   }
 
+  /// Cross-platform Google OAuth via Firebase's own provider flow — no
+  /// separate google_sign_in package needed (see CLAUDE.md > dependencias).
+  Future<void> signInWithGoogle() {
+    return _auth.signInWithProvider(GoogleAuthProvider());
+  }
+
   Future<void> signOut() => _auth.signOut();
 }
