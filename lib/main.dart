@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
-import 'screens/landing_screen.dart';
+import 'screens/auth_gate.dart';
 import 'utils/constants.dart';
 import 'utils/theme.dart';
 
@@ -20,7 +20,7 @@ class LaufenApp extends StatelessWidget {
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const LandingScreen(),
+      home: const AuthGate(),
     );
   }
 }

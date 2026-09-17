@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import '../utils/theme.dart';
+import 'login_screen.dart';
 
 /// Public landing page. Static copy for now — will read from
 /// Firestore `content/landing` via services/content_service.dart once
-/// the Firebase project exists (see CLAUDE.md > CMS).
+/// the CMS is wired up (see CLAUDE.md > CMS).
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
 
@@ -39,6 +40,17 @@ class LandingScreen extends StatelessWidget {
                   AppStrings.heroSubtitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 32),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentOrange,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
+                  child: const Text('Empezar'),
                 ),
               ],
             ),
