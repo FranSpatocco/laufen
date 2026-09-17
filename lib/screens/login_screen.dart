@@ -35,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await _authService.signInWithGoogle();
+      // Pop back to AuthGate, which now shows HomeScreen for the signed-in user.
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _errorMessage = _friendlyError(e.toString()));
     } finally {
@@ -60,6 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
       }
+      // Pop back to AuthGate, which now shows HomeScreen for the signed-in user.
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _errorMessage = _friendlyError(e.toString()));
     } finally {
