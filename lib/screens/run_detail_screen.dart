@@ -41,15 +41,21 @@ class RunDetailScreen extends StatelessWidget {
                   )
                 : const Center(child: Text('Esta carrera no tiene ruta registrada.')),
           ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                StatDisplay(value: RunFormatters.distanceKm(run.distanceKm), label: 'Distancia'),
-                StatDisplay(value: RunFormatters.duration(run.durationSeconds), label: 'Tiempo'),
-                StatDisplay(value: RunFormatters.pace(run.avgPaceMinPerKm), label: 'Pace'),
-              ],
+          // The map stays edge-to-edge; only the stats row needs to clear
+          // the bottom system nav bar (see live_run_screen.dart for the
+          // same issue — found testing on a 3-button-nav Android phone).
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  StatDisplay(value: RunFormatters.distanceKm(run.distanceKm), label: 'Distancia'),
+                  StatDisplay(value: RunFormatters.duration(run.durationSeconds), label: 'Tiempo'),
+                  StatDisplay(value: RunFormatters.pace(run.avgPaceMinPerKm), label: 'Pace'),
+                ],
+              ),
             ),
           ),
         ],

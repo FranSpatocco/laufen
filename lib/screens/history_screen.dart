@@ -26,7 +26,12 @@ class HistoryScreen extends StatelessWidget {
             return const Center(child: Text('Todavía no registraste ninguna carrera.'));
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.of(context).padding.bottom,
+            ),
             itemCount: runs.length,
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
