@@ -134,6 +134,11 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
   }
 
   Widget _buildTrackingView() {
+    // The map stays edge-to-edge, but overlays need to steer clear of the
+    // status bar / gesture nav bar — Positioned ignores SafeArea, so we add
+    // the system insets to its offsets by hand instead.
+    final viewPadding = MediaQuery.of(context).padding;
+
     return Stack(
       children: [
         FlutterMap(
@@ -171,7 +176,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
         ),
         if (_isTracking)
           Positioned(
-            top: 16,
+            top: 16 + viewPadding.top,
             left: 16,
             right: 16,
             child: Card(
@@ -192,7 +197,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
             ),
           ),
         Positioned(
-          bottom: 24,
+          bottom: 24 + viewPadding.bottom,
           left: 24,
           right: 24,
           child: _isTracking
