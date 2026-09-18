@@ -1,17 +1,42 @@
-# laufen
+# Laufen 🏃
 
-A new Flutter project.
+App de tracking de running multiplataforma (Web, Android, iOS) hecha 100% en Flutter, inspirada en Strava. Pieza de portfolio para demostrar Flutter de punta a punta: UI, estado, GPS, mapas y un backend real en Firebase.
 
-## Getting Started
+**Demo en vivo:** https://laufen-app.web.app
 
-This project is a starting point for a Flutter application.
+## Funcionalidad
 
-A few resources to get you started if this is your first Flutter project:
+- **Auth**: registro/login con email y contraseña, y con Google.
+- **Carrera en vivo**: mapa (`flutter_map` + OpenStreetMap) con la ruta dibujándose en tiempo real, cronómetro, distancia y pace calculados a partir del GPS (`geolocator`).
+- **Historial**: lista de carreras pasadas, con detalle de cada una (ruta en el mapa + stats).
+- **Dashboard**: total de km, cantidad de carreras, mejor pace y carrera más larga — agregado client-side sobre Firestore.
+- **Landing con CMS**: la página pública lee su copy desde Firestore, con fallback a un texto por default.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Stack
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Flutter** (Dart) — un solo codebase para Web, Android e iOS.
+- **Firebase**: Firestore (datos), Authentication (email/password + Google), Hosting (deploy web).
+- **flutter_map** + OpenStreetMap para el mapa (sin depender de una API key de Google Maps).
+- **geolocator** para el tracking GPS.
+
+## Correr el proyecto
+
+```bash
+flutter pub get
+flutter run
+```
+
+Necesita un proyecto de Firebase propio configurado con `flutterfire configure` (no se versiona `google-services.json` con credenciales de producción de otro usuario — este repo trae el del proyecto de demo).
+
+## Estructura
+
+```
+lib/
+  screens/    # una pantalla por archivo (landing, login, home, carrera en vivo, historial, detalle)
+  widgets/    # componentes reusables (stat_display)
+  services/   # toda la lógica de Firebase vive acá — los widgets nunca llaman a Firestore directo
+  models/     # RunModel, LandingContent
+  utils/      # tema, constantes, formatters
+```
+
+Más contexto de arquitectura y decisiones de diseño en [CLAUDE.md](CLAUDE.md).

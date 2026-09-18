@@ -39,6 +39,9 @@ class HomeScreen extends StatelessWidget {
             final bestPace = runs.isEmpty
                 ? 0.0
                 : runs.map((r) => r.avgPaceMinPerKm).reduce((a, b) => a < b ? a : b);
+            final longestKm = runs.isEmpty
+                ? 0.0
+                : runs.map((r) => r.distanceKm).reduce((a, b) => a > b ? a : b);
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -50,9 +53,19 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       StatDisplay(value: RunFormatters.distanceKm(totalKm), label: 'Total'),
                       StatDisplay(value: '${runs.length}', label: 'Carreras'),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
                       StatDisplay(
                         value: runs.isEmpty ? '--:--' : RunFormatters.pace(bestPace),
                         label: 'Mejor pace',
+                      ),
+                      StatDisplay(
+                        value: runs.isEmpty ? '--' : RunFormatters.distanceKm(longestKm),
+                        label: 'Carrera más larga',
                       ),
                     ],
                   ),
