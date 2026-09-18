@@ -17,7 +17,7 @@ class AuthGate extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        return snapshot.hasData ? const HomeScreen() : const LandingScreen();
+        return snapshot.hasData ? const HomeScreen() : LandingScreen();
       },
     );
   }
