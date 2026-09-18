@@ -148,7 +148,10 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
               userAgentPackageName: 'com.laufen.laufen',
             ),
             PolylineLayer(polylines: [
-              Polyline(points: _route, strokeWidth: 4, color: AppTheme.accentOrange),
+              // flutter_map asserts on an empty point list when computing
+              // bounds for culling, so only draw once there's a real line.
+              if (_route.length >= 2)
+                Polyline(points: _route, strokeWidth: 4, color: AppTheme.accentOrange),
             ]),
             MarkerLayer(markers: [
               Marker(
