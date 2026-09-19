@@ -82,7 +82,7 @@ Inspirado en Strava.
 * [ ] Probar tracking GPS con movimiento real (validado el flujo y el manejo de permisos en un Android real; falta una carrera real al aire libre)
 * [ ] Huella SHA-1 para que Google Sign-In funcione en Android nativo
 * [ ] Deploy a TestFlight (requiere Mac/Xcode — no disponible en esta máquina)
-* [ ] (Could) Récords personales: mayor distancia histórica junto al mejor pace ya existente en el dashboard
+* [x] (Could) Récords personales: mayor distancia histórica junto al mejor pace ya existente en el dashboard
 
 ## Instrucciones para Claude Code
 
