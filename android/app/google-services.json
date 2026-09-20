@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "173588335327-gir5f01k16imfnmcs6ngn8h1qmml5pfo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.laufen.laufen",
+            "certificate_hash": "bae99152ebf0bb1b60b8d8e84e2bda29653a5faf"
+          }
+        },
+        {
           "client_id": "173588335327-6lulnfek3480um7lluekjdnojoivo103.apps.googleusercontent.com",
           "client_type": 3
         }

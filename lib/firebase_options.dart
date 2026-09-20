@@ -68,6 +68,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '173588335327',
     projectId: 'laufen-app',
     storageBucket: 'laufen-app.firebasestorage.app',
+    androidClientId: '173588335327-gir5f01k16imfnmcs6ngn8h1qmml5pfo.apps.googleusercontent.com',
     iosClientId: '173588335327-r54fielp4tkqfbs1hobfa8t2i84ksvmf.apps.googleusercontent.com',
     iosBundleId: 'com.laufen.laufen',
   );
