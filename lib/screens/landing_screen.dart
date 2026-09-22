@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/content_model.dart';
 import '../services/content_service.dart';
 import '../utils/constants.dart';
+import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
 import 'login_screen.dart';
 
@@ -40,7 +41,7 @@ class LandingScreen extends StatelessWidget {
                     AppStrings.appName,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.accentOrange,
+                          color: AppTheme.accent,
                         ),
                   ),
                   const SizedBox(height: 16),
@@ -60,11 +61,11 @@ class LandingScreen extends StatelessWidget {
                   const SizedBox(height: 32),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.accentOrange,
+                      backgroundColor: AppTheme.accent,
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     ),
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      FadeSlideRoute(builder: (_) => const LoginScreen()),
                     ),
                     child: const Text('Empezar'),
                   ),

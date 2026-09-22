@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
+import 'training_type.dart';
 
 /// A completed run, stored under users/{uid}/runs/{runId} (see CLAUDE.md).
 class RunModel {
@@ -9,6 +10,7 @@ class RunModel {
   final int durationSeconds;
   final double avgPaceMinPerKm;
   final List<LatLng> route;
+  final TrainingType type;
 
   const RunModel({
     this.id,
@@ -17,6 +19,7 @@ class RunModel {
     required this.durationSeconds,
     required this.avgPaceMinPerKm,
     required this.route,
+    this.type = TrainingType.freeRun,
   });
 
   Map<String, dynamic> toMap() => {
@@ -25,6 +28,7 @@ class RunModel {
         'duration_seconds': durationSeconds,
         'avg_pace': avgPaceMinPerKm,
         'route': route.map((p) => {'lat': p.latitude, 'lng': p.longitude}).toList(),
+        'type': type.storageKey,
       };
 
   factory RunModel.fromMap(String id, Map<String, dynamic> map) {
@@ -38,6 +42,9 @@ class RunModel {
       route: rawRoute
           .map((p) => LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()))
           .toList(),
+      // Older runs saved before training types existed don't have this
+      // field — fromStorageKey(null) falls back to freeRun.
+      type: TrainingType.fromStorageKey(map['type'] as String?),
     );
   }
 }

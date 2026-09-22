@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Big bold stat (distance, pace, time) reused across live-run, detail
-/// and dashboard screens — these numbers are the protagonists of the UI
-/// (see CLAUDE.md > Diseño).
+/// Big bold stat (distance, pace, time) reused across the live-run and
+/// detail screens — these numbers are the protagonists of the UI
+/// (see CLAUDE.md > Diseño). The dashboard uses AnimatedStatTile instead,
+/// which adds the count-up animation and card styling.
 class StatDisplay extends StatelessWidget {
   final String value;
   final String label;

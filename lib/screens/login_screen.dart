@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 import '../utils/theme.dart';
 
 /// Email/password login and registration. On success, AuthGate's
-/// authStateChanges listener takes care of navigating to HomeScreen.
+/// authStateChanges listener takes care of navigating to MainShell.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await _authService.signInWithGoogle();
-      // Pop back to AuthGate, which now shows HomeScreen for the signed-in user.
+      // Pop back to AuthGate, which now shows MainShell for the signed-in user.
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _errorMessage = _friendlyError(e.toString()));
@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
       }
-      // Pop back to AuthGate, which now shows HomeScreen for the signed-in user.
+      // Pop back to AuthGate, which now shows MainShell for the signed-in user.
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _errorMessage = _friendlyError(e.toString()));
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     FilledButton(
                       onPressed: _isLoading ? null : _submit,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppTheme.accentOrange,
+                        backgroundColor: AppTheme.accent,
                       ),
                       child: _isLoading
                           ? const SizedBox(

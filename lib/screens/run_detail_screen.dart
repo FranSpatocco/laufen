@@ -19,7 +19,20 @@ class RunDetailScreen extends StatelessWidget {
     final hasRoute = run.route.length >= 2;
 
     return Scaffold(
-      appBar: AppBar(title: Text(RunFormatters.distanceKm(run.distanceKm))),
+      appBar: AppBar(
+        title: Text(RunFormatters.distanceKm(run.distanceKm)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Chip(
+              avatar: Icon(run.type.icon, size: 18, color: AppTheme.accentDark),
+              label: Text(run.type.label),
+              backgroundColor: AppTheme.accent.withValues(alpha: 0.12),
+              side: BorderSide.none,
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -37,7 +50,7 @@ class RunDetailScreen extends StatelessWidget {
                         userAgentPackageName: 'com.laufen.laufen',
                       ),
                       PolylineLayer(polylines: [
-                        Polyline(points: run.route, strokeWidth: 4, color: AppTheme.accentOrange),
+                        Polyline(points: run.route, strokeWidth: 4, color: AppTheme.accent),
                       ]),
                     ],
                   )

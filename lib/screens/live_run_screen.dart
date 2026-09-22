@@ -5,10 +5,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/run_model.dart';
+import '../models/training_type.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/location_service.dart';
 import '../utils/formatters.dart';
+import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
 import '../widgets/stat_display.dart';
 import 'run_detail_screen.dart';
@@ -18,7 +20,9 @@ enum _PermissionStatus { checking, granted, denied }
 /// Live run: GPS tracking on a map with a running timer, distance and
 /// pace, saved to Firestore on finish (see CLAUDE.md > Funcionalidad core).
 class LiveRunScreen extends StatefulWidget {
-  const LiveRunScreen({super.key});
+  final TrainingType trainingType;
+
+  const LiveRunScreen({super.key, this.trainingType = TrainingType.freeRun});
 
   @override
   State<LiveRunScreen> createState() => _LiveRunScreenState();
@@ -131,6 +135,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       durationSeconds: _stopwatch.elapsed.inSeconds,
       avgPaceMinPerKm: _avgPaceMinPerKm,
       route: _route,
+      type: widget.trainingType,
     );
 
     final uid = AuthService().currentUser!.uid;
@@ -138,14 +143,14 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => RunDetailScreen(run: run)),
+      FadeSlideRoute(builder: (_) => RunDetailScreen(run: run)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Carrera en vivo')),
+      appBar: AppBar(title: Text(widget.trainingType.label)),
       body: switch (_status) {
         _PermissionStatus.checking => const Center(child: CircularProgressIndicator()),
         _PermissionStatus.denied => _PermissionDeniedView(onRetry: _checkPermission),
@@ -177,7 +182,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
               // flutter_map asserts on an empty point list when computing
               // bounds for culling, so only draw once there's a real line.
               if (_route.length >= 2)
-                Polyline(points: _route, strokeWidth: 4, color: AppTheme.accentOrange),
+                Polyline(points: _route, strokeWidth: 4, color: AppTheme.accent),
             ]),
             MarkerLayer(markers: [
               Marker(
@@ -186,7 +191,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                 height: 20,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.accentOrange,
+                    color: AppTheme.accent,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
@@ -238,7 +243,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                 )
               : FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.accentOrange,
+                    backgroundColor: AppTheme.accent,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                   ),
                   onPressed: _startRun,
