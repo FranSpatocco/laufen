@@ -15,10 +15,6 @@ class AppTheme {
     ),
     scaffoldBackgroundColor: const Color(0xFFF7F9F8),
     navigationBarTheme: NavigationBarThemeData(
-      // Fixed height with breathing room: the label switching weight
-      // between states (below) changes its rendered metrics slightly,
-      // which overflowed the default height on a real device.
-      height: 72,
       indicatorColor: accent.withValues(alpha: 0.15),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
