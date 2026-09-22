@@ -44,7 +44,7 @@ class DashboardTab extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 14,
                 crossAxisSpacing: 14,
-                childAspectRatio: 1.3,
+                childAspectRatio: 1.7,
                 children: [
                   AnimatedStatTile(
                     value: totalKm,
