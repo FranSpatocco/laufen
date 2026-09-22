@@ -75,6 +75,11 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
   }
 
   void _onPosition(Position position) {
+    // Reject low-accuracy fixes (e.g. weak GPS signal indoors, falling back
+    // to network/wifi positioning) — a single bad reading can jump the
+    // route hundreds of km and wreck both the map and the distance math.
+    if (position.accuracy > 30) return;
+
     final point = LatLng(position.latitude, position.longitude);
     if (_lastPosition != null) {
       _distanceMeters += Geolocator.distanceBetween(

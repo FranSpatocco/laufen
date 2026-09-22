@@ -14,7 +14,9 @@ class RunDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasRoute = run.route.isNotEmpty;
+    // A single point can't draw a line and produces a degenerate (zero-size)
+    // camera bounds, so treat it the same as no route.
+    final hasRoute = run.route.length >= 2;
 
     return Scaffold(
       appBar: AppBar(title: Text(RunFormatters.distanceKm(run.distanceKm))),
