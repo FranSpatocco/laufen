@@ -74,6 +74,10 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
     setState(() => _isTracking = true);
   }
 
+  /// No recreational runner sustains this — a jump faster than this between
+  /// two fixes is a GPS glitch, not real movement.
+  static const _maxPlausibleSpeedMetersPerSecond = 8.0;
+
   void _onPosition(Position position) {
     // Reject low-accuracy fixes (e.g. weak GPS signal indoors, falling back
     // to network/wifi positioning) — a single bad reading can jump the
@@ -82,12 +86,24 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
 
     final point = LatLng(position.latitude, position.longitude);
     if (_lastPosition != null) {
-      _distanceMeters += Geolocator.distanceBetween(
+      final segmentMeters = Geolocator.distanceBetween(
         _lastPosition!.latitude,
         _lastPosition!.longitude,
         position.latitude,
         position.longitude,
       );
+      final elapsedSeconds = position.timestamp.difference(_lastPosition!.timestamp).inMilliseconds / 1000;
+
+      // A "good accuracy" GPS fix can still be a wild outlier (a jump to a
+      // wrong spot far away) — occasionally seen with real GPS hardware.
+      // Catch that by rejecting implausible speed instead of trusting
+      // accuracy alone, and don't let the bad fix become the new reference
+      // point for the next comparison.
+      if (elapsedSeconds > 0 && segmentMeters / elapsedSeconds > _maxPlausibleSpeedMetersPerSecond) {
+        return;
+      }
+
+      _distanceMeters += segmentMeters;
     }
     _lastPosition = position;
     _route.add(point);
