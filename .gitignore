@@ -49,3 +49,6 @@ app.*.map.json
 
 # Firebase CLI local cache
 .firebase/
+
+# Kotlin/Gradle build cache
+/android/.kotlin/
