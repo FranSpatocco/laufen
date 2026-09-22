@@ -49,9 +49,9 @@ No hay splits por km, logros/badges, segmentos, ni feed social — eso es infrae
 
 ## Auth
 
-Firebase Auth con email/password y Google (`signInWithProvider(GoogleAuthProvider())`, sin sumar el paquete `google_sign_in`). El área de usuario detrás del login vive en `screens/`, protegida por `screens/auth_gate.dart`, que rutea según el stream `FirebaseAuth.instance.authStateChanges()`.
+Firebase Auth con email/password y Google. En **web** usa `signInWithProvider(GoogleAuthProvider())` directo de `firebase_auth`. En **Android/iOS** eso no funciona (Chrome storage-partitioning rompe el flujo de Custom Tabs que usa por debajo — error "missing initial state", encontrado probando en un dispositivo real), así que ahí se usa el paquete oficial `google_sign_in` (login nativo, sin navegador) y el ID token resultante se pasa a `FirebaseAuth.signInWithCredential`. El área de usuario detrás del login vive en `screens/`, protegida por `screens/auth_gate.dart`, que rutea según el stream `FirebaseAuth.instance.authStateChanges()`.
 
-**Pendiente**: para que Google Sign-In funcione en un build de Android real (no solo web) hace falta registrar la huella SHA-1 del keystore de debug en la consola de Firebase (Configuración del proyecto → Tus apps → Android).
+Requiere tener registrada la huella SHA-1 del keystore de debug en la consola de Firebase (Configuración del proyecto → Tus apps → Android) — ya está hecho para este proyecto.
 
 ## i18n
 
@@ -80,7 +80,7 @@ Inspirado en Strava.
 * [x] Auth funcionando (email/password + Google)
 * [x] Deploy de prueba a Web (https://laufen-app.web.app)
 * [ ] Probar tracking GPS con movimiento real (validado el flujo y el manejo de permisos en un Android real; falta una carrera real al aire libre)
-* [ ] Huella SHA-1 para que Google Sign-In funcione en Android nativo
+* [x] Huella SHA-1 + paquete `google_sign_in` para que el login con Google funcione en Android nativo
 * [ ] Deploy a TestFlight (requiere Mac/Xcode — no disponible en esta máquina)
 * [x] (Could) Récords personales: mayor distancia histórica junto al mejor pace ya existente en el dashboard
 
