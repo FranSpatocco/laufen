@@ -77,9 +77,9 @@ Inspirado en Strava.
 * [x] Historial de carreras + detalle
 * [x] Dashboard de stats
 * [x] Landing leyendo de Firestore
-* [x] Auth funcionando (email/password + Google)
+* [x] Auth funcionando (email/password + Google — ambos confirmados en Android real)
 * [x] Deploy de prueba a Web (https://laufen-app.web.app)
-* [ ] Probar tracking GPS con movimiento real (validado el flujo y el manejo de permisos en un Android real; falta una carrera real al aire libre)
+* [ ] Probar tracking GPS con movimiento real (confirmado en Android real que trackea, dibuja la ruta y guarda bien sin crashear; falta una carrera real al aire libre para validar distancia/pace con movimiento real)
 * [x] Huella SHA-1 + paquete `google_sign_in` para que el login con Google funcione en Android nativo
 * [ ] Deploy a TestFlight (requiere Mac/Xcode — no disponible en esta máquina)
 * [x] (Could) Récords personales: mayor distancia histórica junto al mejor pace ya existente en el dashboard
