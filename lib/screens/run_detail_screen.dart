@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import '../models/run_model.dart';
 import '../utils/formatters.dart';
 import '../utils/theme.dart';
+import '../widgets/splits_table.dart';
 import '../widgets/stat_display.dart';
 
 /// Detail of a single past run: its route on a map plus its stats
@@ -36,6 +37,7 @@ class RunDetailScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
+            flex: 5,
             child: hasRoute
                 ? FlutterMap(
                     options: MapOptions(
@@ -61,6 +63,9 @@ class RunDetailScreen extends StatelessWidget {
           // same issue — found testing on a 3-button-nav Android phone).
           SafeArea(
             top: false,
+            // When the splits table sits below, it's the one touching the
+            // bottom edge and clears the nav bar instead.
+            bottom: run.splits.isEmpty,
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Row(
@@ -73,6 +78,20 @@ class RunDetailScreen extends StatelessWidget {
               ),
             ),
           ),
+          // Splits get their own scrollable area below the stats, instead of
+          // putting the map inside a scroll view (the map's pan gesture and
+          // the list's vertical scroll would fight each other).
+          if (run.splits.isNotEmpty)
+            Expanded(
+              flex: 4,
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: SplitsTable(splits: run.splits, avgPaceMinPerKm: run.avgPaceMinPerKm),
+                ),
+              ),
+            ),
         ],
       ),
     );

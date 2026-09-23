@@ -42,11 +42,12 @@ Si se agrega un panel de admin más adelante, escribir sobre esta misma colecci�
 
 1. **Tipos de entrenamiento** (`models/training_type.dart`, `screens/train_screen.dart`): carrera libre, trote o caminata. Mismo `RunModel` y mismo flujo de tracking para los tres — el enum `TrainingType` solo aporta label/ícono y el string que se guarda en Firestore. Carreras guardadas antes de que existiera este campo caen en "Carrera libre" por default (`TrainingType.fromStorageKey`).
 2. **Carrera en vivo** (`screens/live_run_screen.dart`): `geolocator` para ubicación en tiempo real, mapa con `flutter_map` (evita depender de una API key de Google Maps). Cronómetro, distancia acumulada y pace calculados en tiempo real a partir de los puntos GPS. Descarta lecturas de baja precisión (>30m) y saltos de velocidad imposibles (>8 m/s) para evitar que un glitch de GPS rompa la ruta — encontrado probando una carrera real al aire libre.
-3. **Guardar carrera**: al finalizar escribe en Firestore bajo `users/{uid}/runs/{runId}` con `date`, `distance_km`, `duration_seconds`, `avg_pace`, `route` (array de `{lat, lng}`), `type`.
-4. **Historial** (`screens/history_screen.dart`): lista de carreras del usuario ordenada por fecha, embebida como tab. Tap en una → `screens/run_detail_screen.dart` con el mapa de esa ruta puntual + sus stats. Una ruta con menos de 2 puntos se trata como "sin ruta" (un solo punto no dibuja línea y rompe el encuadre de cámara del mapa).
-5. **Dashboard** (`screens/dashboard_tab.dart`): total de km corridos, cantidad de carreras, mejor pace histórico y carrera más larga — agregado client-side sobre la colección `runs` existente. Tarjetas con animación de conteo (`widgets/animated_stat_tile.dart`, `TweenAnimationBuilder` nativo) y acceso directo a "Entrenar" + actividad reciente.
+3. **Guardar carrera**: al finalizar escribe en Firestore bajo `users/{uid}/runs/{runId}` con `date`, `distance_km`, `duration_seconds`, `avg_pace`, `route` (array de `{lat, lng}`), `type`, `splits` (array de `{distance_km, duration_seconds}`).
+4. **Parciales por km** (`models/km_split.dart`, `widgets/splits_table.dart`): para los tres tipos de entrenamiento. `KmSplitTracker` (Dart puro, con unit tests en `test/km_split_test.dart`) interpola el momento exacto en que se cruza cada km entre dos fixes de GPS. El último parcial guarda la distancia sobrante (ej. 0.43 km) con su ritmo normalizado a min/km. En vivo se muestra el ritmo del último km cerrado; en el detalle, una tabla con barra relativa por km, el km más rápido resaltado y el ritmo total de la carrera. Carreras guardadas antes no tienen parciales (la ruta no guarda timestamps, no se pueden reconstruir) y no muestran la tabla.
+5. **Historial** (`screens/history_screen.dart`): lista de carreras del usuario ordenada por fecha, embebida como tab. Tap en una → `screens/run_detail_screen.dart` con el mapa de esa ruta puntual + sus stats. Una ruta con menos de 2 puntos se trata como "sin ruta" (un solo punto no dibuja línea y rompe el encuadre de cámara del mapa).
+6. **Dashboard** (`screens/dashboard_tab.dart`): total de km corridos, cantidad de carreras, mejor pace histórico y carrera más larga — agregado client-side sobre la colección `runs` existente. Tarjetas con animación de conteo (`widgets/animated_stat_tile.dart`, `TweenAnimationBuilder` nativo) y acceso directo a "Entrenar" + actividad reciente.
 
-No hay splits por km, logros/badges, segmentos, ni feed social — eso es infraestructura de red social que no aporta a demostrar skills de Flutter y vuela el scope de un portfolio piece.
+No hay logros/badges, segmentos, ni feed social — eso es infraestructura de red social que no aporta a demostrar skills de Flutter y vuela el scope de un portfolio piece.
 
 ## Auth
 
@@ -96,6 +97,7 @@ Inspirado en Strava, con una navegación más completa (a pedido explícito del 
 * [x] (Could) Récords personales: mayor distancia histórica junto al mejor pace ya existente en el dashboard
 * [x] Rediseño de interfaz principal: nav de 4 secciones, tipos de entrenamiento, animaciones nativas
 * [x] Logo, paleta tierra/asfalto e íconos reales de la app (Android, iOS, web/PWA)
+* [x] Parciales por km (ritmo de cada km + ritmo total), pedido explícito del usuario
 * [ ] Revisar overflow de texto en la landing a ~400px de ancho (detectado probando en el navegador de desarrollo; no confirmado todavía si ocurre en un celular real — los tests en dispositivo real dieron bien)
 
 ## Instrucciones para Claude Code

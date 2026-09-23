@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import '../models/km_split.dart';
 import '../models/run_model.dart';
 import '../models/training_type.dart';
 import '../services/auth_service.dart';
@@ -41,6 +42,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
   final List<LatLng> _route = [];
   Position? _lastPosition;
   double _distanceMeters = 0;
+  final _splitTracker = KmSplitTracker();
   bool _isTracking = false;
   bool _isSaving = false;
 
@@ -108,6 +110,9 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       }
 
       _distanceMeters += segmentMeters;
+      // Split timing uses the stopwatch (not the GPS timestamp) so the
+      // splits always add up to the run's total duration.
+      _splitTracker.addSegment(segmentMeters, _stopwatch.elapsedMilliseconds / 1000);
     }
     _lastPosition = position;
     _route.add(point);
@@ -136,6 +141,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       avgPaceMinPerKm: _avgPaceMinPerKm,
       route: _route,
       type: widget.trainingType,
+      splits: _splitTracker.finish(_stopwatch.elapsedMilliseconds / 1000),
     );
 
     final uid = AuthService().currentUser!.uid;
@@ -208,15 +214,31 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    StatDisplay(
-                      value: RunFormatters.duration(_stopwatch.elapsed.inSeconds),
-                      label: 'Tiempo',
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        StatDisplay(
+                          value: RunFormatters.duration(_stopwatch.elapsed.inSeconds),
+                          label: 'Tiempo',
+                        ),
+                        StatDisplay(value: RunFormatters.distanceKm(_distanceKm), label: 'Distancia'),
+                        StatDisplay(value: RunFormatters.pace(_avgPaceMinPerKm), label: 'Pace'),
+                      ],
                     ),
-                    StatDisplay(value: RunFormatters.distanceKm(_distanceKm), label: 'Distancia'),
-                    StatDisplay(value: RunFormatters.pace(_avgPaceMinPerKm), label: 'Pace'),
+                    if (_splitTracker.completed.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Km ${_splitTracker.completed.length}: '
+                        '${RunFormatters.pace(_splitTracker.completed.last.paceMinPerKm)}',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: AppTheme.accentDark,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),

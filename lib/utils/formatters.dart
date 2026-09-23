@@ -16,8 +16,11 @@ class RunFormatters {
   /// avgPaceMinPerKm is a decimal number of minutes (e.g. 5.5 = 5:30 min/km).
   static String pace(double avgPaceMinPerKm) {
     if (!avgPaceMinPerKm.isFinite || avgPaceMinPerKm <= 0) return '--:--';
-    final minutes = avgPaceMinPerKm.floor();
-    final seconds = ((avgPaceMinPerKm - minutes) * 60).round();
+    // Round the total seconds first — rounding only the seconds part turns
+    // e.g. 5.999 into "5:60" instead of "6:00".
+    final totalSeconds = (avgPaceMinPerKm * 60).round();
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
   }
 }

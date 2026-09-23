@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
+import 'km_split.dart';
 import 'training_type.dart';
 
 /// A completed run, stored under users/{uid}/runs/{runId} (see CLAUDE.md).
@@ -12,6 +13,10 @@ class RunModel {
   final List<LatLng> route;
   final TrainingType type;
 
+  /// Per-km splits. Empty for runs saved before splits existed — their
+  /// route has no timestamps, so they can't be reconstructed afterwards.
+  final List<KmSplit> splits;
+
   const RunModel({
     this.id,
     required this.date,
@@ -20,6 +25,7 @@ class RunModel {
     required this.avgPaceMinPerKm,
     required this.route,
     this.type = TrainingType.freeRun,
+    this.splits = const [],
   });
 
   Map<String, dynamic> toMap() => {
@@ -29,6 +35,7 @@ class RunModel {
         'avg_pace': avgPaceMinPerKm,
         'route': route.map((p) => {'lat': p.latitude, 'lng': p.longitude}).toList(),
         'type': type.storageKey,
+        'splits': splits.map((s) => s.toMap()).toList(),
       };
 
   factory RunModel.fromMap(String id, Map<String, dynamic> map) {
@@ -45,6 +52,9 @@ class RunModel {
       // Older runs saved before training types existed don't have this
       // field — fromStorageKey(null) falls back to freeRun.
       type: TrainingType.fromStorageKey(map['type'] as String?),
+      splits: ((map['splits'] as List?) ?? const [])
+          .map((s) => KmSplit.fromMap(Map<String, dynamic>.from(s as Map)))
+          .toList(),
     );
   }
 }
