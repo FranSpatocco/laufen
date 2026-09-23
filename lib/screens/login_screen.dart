@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../utils/theme.dart';
+import '../widgets/laufen_wordmark.dart';
 
 /// Email/password login and registration. On success, AuthGate's
 /// authStateChanges listener takes care of navigating to MainShell.
@@ -107,6 +108,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Center(
+                      child: LaufenWordmark(fontSize: 32, color: AppTheme.accent),
+                    ),
+                    const SizedBox(height: 32),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,

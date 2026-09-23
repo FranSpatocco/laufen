@@ -4,6 +4,7 @@ import '../services/content_service.dart';
 import '../utils/constants.dart';
 import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
+import '../widgets/laufen_wordmark.dart';
 import 'login_screen.dart';
 
 /// Public landing page. Reads its copy from Firestore `content/landing`
@@ -37,13 +38,7 @@ class LandingScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 48),
-                  Text(
-                    AppStrings.appName,
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.accent,
-                        ),
-                  ),
+                  LaufenWordmark(fontSize: 44, color: AppTheme.accent),
                   const SizedBox(height: 16),
                   Text(
                     heroTitle,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../utils/theme.dart';
+import '../widgets/laufen_wordmark.dart';
 import 'dashboard_tab.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
@@ -17,7 +19,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
-  static const _titles = ['Laufen', 'Entrenar', 'Historial', 'Perfil'];
+  static const _titles = ['Inicio', 'Entrenar', 'Historial', 'Perfil'];
 
   void _goToTab(int index) => setState(() => _index = index);
 
@@ -31,7 +33,11 @@ class _MainShellState extends State<MainShell> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_index])),
+      appBar: AppBar(
+        title: _index == 0
+            ? LaufenWordmark(fontSize: 22, color: AppTheme.accentDark)
+            : Text(_titles[_index]),
+      ),
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
