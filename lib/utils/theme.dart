@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Emerald-green accent as the Material 3 seed color (moved away from the
-/// original Strava-orange per product direction — see CLAUDE.md > Diseño).
+/// Paleta "tierra / asfalto" como seed color de Material 3 (reemplaza al
+/// verde esmeralda y, antes, al naranja estilo Strava — ver CLAUDE.md > Diseño).
 /// Light theme only for now — dark mode is not part of the v1 scope.
 class AppTheme {
-  static const Color accent = Color(0xFF10B981);
-  static const Color accentDark = Color(0xFF047857);
+  static const Color accent = Color(0xFF9C5A32);
+  static const Color accentDark = Color(0xFF6B3D20);
 
   static ThemeData light = ThemeData(
     useMaterial3: true,
@@ -13,7 +13,7 @@ class AppTheme {
       seedColor: accent,
       brightness: Brightness.light,
     ),
-    scaffoldBackgroundColor: const Color(0xFFF7F9F8),
+    scaffoldBackgroundColor: const Color(0xFFF3EEE4),
     navigationBarTheme: NavigationBarThemeData(
       indicatorColor: accent.withValues(alpha: 0.15),
       labelTextStyle: WidgetStateProperty.resolveWith(

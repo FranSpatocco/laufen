@@ -63,7 +63,13 @@ Pendiente de decisión. Si se agrega: usar el paquete `intl` con archivos `.arb`
 Inspirado en Strava, con una navegación más completa (a pedido explícito del usuario — ver nota abajo).
 
 * Fondo claro, no dark mode como default.
-* Color de acento: verde esmeralda (`#10B981`, `utils/theme.dart`) — `seedColor` de `ColorScheme.fromSeed` en Material 3. Originalmente naranja estilo Strava; se cambió a pedido del usuario para diferenciarse visualmente.
+* Paleta "tierra / asfalto" (`utils/theme.dart`) — tonos de tierra de trail y pavimento, más ligados a correr al aire libre que el verde genérico de las apps de fitness:
+  * `#9C5A32` "Tierra" — color de acento, `seedColor` de `ColorScheme.fromSeed` en Material 3.
+  * `#6B3D20` "Tierra oscuro" — tab activo, estados presionados.
+  * `#F3EEE4` "Arena" — `scaffoldBackgroundColor`.
+  
+  Originalmente naranja estilo Strava, después verde esmeralda (`#10B981`); se cambió a la paleta tierra a pedido del usuario, buscando una identidad más ligada al aire libre.
+* Logotipo: wordmark ("laufen" en minúscula, tipografía Outfit bold) en vez de un ícono separado — más fácil de aplicar en cualquier contexto. Tiene dos detalles propios que se repiten siempre para que se vuelva reconocible: un punto sobre la "u" y un remate que se levanta al final de la línea de base. Para tamaños chicos (ícono de la app, favicon) el wordmark completo no entra, así que se usa un monograma de la "l" con el mismo punto como acento — mismo gesto, coherente en cualquier escala. Explorado y definido en un Artifact de Claude (canvas de diseño), fuera del repo.
 * Navegación inferior de 4 secciones (`screens/main_shell.dart`): Inicio, Entrenar, Historial, Perfil. Un solo `Scaffold` para toda el área logueada; cada tab es un widget de contenido plano (sin AppBar propio).
 * Transición de página propia (`utils/page_transitions.dart`, `FadeSlideRoute`) para los flujos principales, en vez de la transición plana por default de `MaterialPageRoute`. Animaciones de conteo en las tarjetas del dashboard. Todo con las animaciones nativas de Flutter (`TweenAnimationBuilder`, `AnimatedSwitcher`, `PageRouteBuilder`) — sin sumar un paquete de animación.
 * Números grandes (distancia, pace, tiempo) en tipografía bold (`widgets/stat_display.dart`), protagonistas de la carrera en vivo y el detalle.
@@ -88,7 +94,8 @@ Inspirado en Strava, con una navegación más completa (a pedido explícito del 
 * [x] Huella SHA-1 + paquete `google_sign_in` para que el login con Google funcione en Android nativo
 * [ ] Deploy a TestFlight (requiere Mac/Xcode — no disponible en esta máquina)
 * [x] (Could) Récords personales: mayor distancia histórica junto al mejor pace ya existente en el dashboard
-* [x] Rediseño de interfaz principal: nav de 4 secciones, tipos de entrenamiento, paleta verde, animaciones nativas
+* [x] Rediseño de interfaz principal: nav de 4 secciones, tipos de entrenamiento, animaciones nativas
+* [x] Logo, paleta tierra/asfalto e íconos reales de la app (Android, iOS, web/PWA)
 * [ ] Revisar overflow de texto en la landing a ~400px de ancho (detectado probando en el navegador de desarrollo; no confirmado todavía si ocurre en un celular real — los tests en dispositivo real dieron bien)
 
 ## Instrucciones para Claude Code
