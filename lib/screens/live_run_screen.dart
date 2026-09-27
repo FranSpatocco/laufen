@@ -145,7 +145,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
     );
 
     final uid = AuthService().currentUser!.uid;
-    await FirestoreService().saveRun(uid, run);
+    FirestoreService().saveRun(uid, run);
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(

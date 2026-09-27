@@ -2,6 +2,11 @@
     <!-- Needed for live GPS tracking during a run (see CLAUDE.md > Funcionalidad core). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Keep tracking with the screen off: geolocator runs a foreground
+         service of type "location" while a run is in progress. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <application
         android:label="laufen"
         android:name="${applicationName}"
