@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import '../models/run_model.dart';
+import '../services/auth_service.dart';
 import '../utils/formatters.dart';
 import '../utils/theme.dart';
+import '../widgets/run_delete.dart';
 import '../widgets/splits_table.dart';
 import '../widgets/stat_display.dart';
 
@@ -39,14 +41,31 @@ class RunDetailScreen extends StatelessWidget {
           )
         : const Center(child: Text('Esta carrera no tiene ruta registrada.'));
 
-    final stats = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    final intervals = run.intervals;
+    final stats = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        StatDisplay(value: RunFormatters.distanceKm(run.distanceKm), label: 'Distancia'),
-        StatDisplay(value: RunFormatters.duration(run.durationSeconds), label: 'Tiempo'),
-        StatDisplay(value: RunFormatters.pace(run.avgPaceMinPerKm), label: 'Pace'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            StatDisplay(value: RunFormatters.distanceKm(run.distanceKm), label: 'Distancia'),
+            StatDisplay(value: RunFormatters.duration(run.durationSeconds), label: 'Tiempo'),
+            StatDisplay(value: RunFormatters.pace(run.avgPaceMinPerKm), label: 'Pace'),
+          ],
+        ),
+        if (intervals != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Intervalos: ${RunFormatters.clock(intervals.runSeconds)} correr · '
+            '${RunFormatters.clock(intervals.walkSeconds)} caminar',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: AppTheme.accentDark),
+          ),
+        ],
       ],
     );
+
+    final uid = AuthService().currentUser?.uid;
+    final canDelete = uid != null && run.id != null && !run.isSample;
 
     // On a desktop browser the map takes the left side and stats + splits
     // live in a side panel, instead of a phone layout stretched sideways.
@@ -70,6 +89,19 @@ class RunDetailScreen extends StatelessWidget {
               side: BorderSide.none,
             ),
           ),
+          if (canDelete)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: 'Eliminar carrera',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () async {
+                  if (!await RunDelete.confirm(context, run) || !context.mounted) return;
+                  RunDelete.deleteWithUndo(context, uid, run);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
         ],
       ),
       body: wide

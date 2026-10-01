@@ -1,13 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../models/run_model.dart';
+import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import '../services/runs_service.dart';
 import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
 import '../widgets/reveal.dart';
+import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 
-/// "Perfil" tab. Signed in: who's logged in and sign out (see CLAUDE.md >
-/// Auth). Guest: the pitch to create an account — but with "try a run
+/// "Perfil" tab. Signed in: personal data (age, weight, level, goal...),
+/// weekly km goal progress and sign out (see CLAUDE.md > Auth). Guest: the pitch to create an account — but with "try a run
 /// first" right next to it, since nothing in the app requires an account
 /// until there's a run worth saving.
 class ProfileScreen extends StatelessWidget {
@@ -31,44 +36,268 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _SignedInProfile extends StatelessWidget {
+class _SignedInProfile extends StatefulWidget {
   final User user;
 
   const _SignedInProfile({required this.user});
 
   @override
-  Widget build(BuildContext context) {
-    final email = user.email ?? '';
-    final initial = email.isNotEmpty ? email[0].toUpperCase() : '?';
+  State<_SignedInProfile> createState() => _SignedInProfileState();
+}
 
-    return Column(
+class _SignedInProfileState extends State<_SignedInProfile> {
+  late final Stream<UserProfile?> _profile = FirestoreService().watchProfile(widget.user.uid);
+  late final Stream<List<RunModel>> _runs = RunsService().watchRuns(widget.user.uid);
+
+  void _edit(UserProfile? current) {
+    Navigator.of(context).push(
+      FadeSlideRoute(builder: (_) => EditProfileScreen(uid: widget.user.uid, initial: current)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const stagger = Duration(milliseconds: 80);
+    final email = widget.user.email ?? '';
+
+    return StreamBuilder<UserProfile?>(
+      stream: _profile,
+      builder: (context, snapshot) {
+        final profile = snapshot.data;
+        final hasData = profile != null && !profile.isEmpty;
+        final name = profile?.name ?? '';
+        final initialSource = name.isNotEmpty ? name : email;
+        final initial = initialSource.isNotEmpty ? initialSource[0].toUpperCase() : '?';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 12),
+            Reveal(
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: AppTheme.accent,
+                    child: Text(
+                      initial,
+                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (name.isNotEmpty)
+                    Text(
+                      name,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  Text(
+                    email,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Reveal(
+              delay: stagger,
+              child: hasData ? _ProfileFacts(profile: profile) : _CompleteProfileCard(onTap: () => _edit(profile)),
+            ),
+            const SizedBox(height: 16),
+            Reveal(
+              delay: stagger * 2,
+              child: StreamBuilder<List<RunModel>>(
+                stream: _runs,
+                builder: (context, runsSnapshot) => _WeeklyGoalCard(
+                  runs: runsSnapshot.data ?? const [],
+                  goalKm: profile?.weeklyGoalKm ?? UserProfile.defaultWeeklyGoalKm,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Reveal(
+              delay: stagger * 3,
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  if (hasData)
+                    FilledButton.tonalIcon(
+                      onPressed: () => _edit(profile),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Editar perfil'),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: AuthService().signOut,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Cerrar sesión'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CompleteProfileCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _CompleteProfileCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.accent.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: const Padding(
+          padding: EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Icon(Icons.badge_outlined, color: AppTheme.accentDark, size: 30),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Completá tu perfil', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    SizedBox(height: 2),
+                    Text('Edad, peso, experiencia y tu objetivo: te lleva 30 segundos.'),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: AppTheme.accentDark),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The answered questions as small tiles — unanswered ones are skipped.
+class _ProfileFacts extends StatelessWidget {
+  final UserProfile profile;
+
+  const _ProfileFacts({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final weight = profile.weightKg;
+    final facts = [
+      if (profile.age != null) (Icons.cake_outlined, 'Edad', '${profile.age} años'),
+      if (weight != null)
+        (
+          Icons.monitor_weight_outlined,
+          'Peso',
+          '${weight == weight.roundToDouble() ? weight.toInt() : weight.toStringAsFixed(1)} kg',
+        ),
+      if (profile.heightCm != null) (Icons.height, 'Altura', '${profile.heightCm} cm'),
+      if (profile.level != null) (Icons.trending_up, 'Nivel', profile.level!.label),
+      if (profile.goal != null) (Icons.flag_outlined, 'Objetivo', profile.goal!.label),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
       children: [
-        const SizedBox(height: 12),
-        Reveal(
-          child: CircleAvatar(
-            radius: 40,
-            backgroundColor: AppTheme.accent,
-            child: Text(
-              initial,
-              style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+        for (final (icon, label, value) in facts)
+          Container(
+            constraints: const BoxConstraints(minWidth: 140),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: AppTheme.accent, size: 20),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                    ),
+                    Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Reveal(
-          delay: const Duration(milliseconds: 80),
-          child: Text(email, style: Theme.of(context).textTheme.titleMedium),
-        ),
-        const SizedBox(height: 32),
-        Reveal(
-          delay: const Duration(milliseconds: 160),
-          child: OutlinedButton.icon(
-            onPressed: AuthService().signOut,
-            icon: const Icon(Icons.logout),
-            label: const Text('Cerrar sesión'),
-          ),
-        ),
       ],
+    );
+  }
+}
+
+/// Progress towards the weekly km goal (Monday to now), computed
+/// client-side from the same runs stream the dashboard uses.
+class _WeeklyGoalCard extends StatelessWidget {
+  final List<RunModel> runs;
+  final double goalKm;
+
+  const _WeeklyGoalCard({required this.runs, required this.goalKm});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final weekStart = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    final weekKm =
+        runs.where((r) => !r.date.isBefore(weekStart)).fold<double>(0, (sum, r) => sum + r.distanceKm);
+    final progress = goalKm <= 0 ? 0.0 : (weekKm / goalKm).clamp(0.0, 1.0);
+    final done = weekKm >= goalKm;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(done ? Icons.emoji_events : Icons.calendar_today_outlined, color: AppTheme.accent, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Meta semanal',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              Text(
+                '${weekKm.toStringAsFixed(1)} / ${goalKm.round()} km',
+                style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.accentDark),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Fills from 0 on first build, like the dashboard counters.
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: progress),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) => ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: 10,
+                color: AppTheme.accent,
+                backgroundColor: AppTheme.accent.withValues(alpha: 0.12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            done
+                ? '¡Cumpliste tu meta de esta semana!'
+                : 'Te faltan ${(goalKm - weekKm).toStringAsFixed(1)} km para cumplirla.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+          ),
+        ],
+      ),
     );
   }
 }

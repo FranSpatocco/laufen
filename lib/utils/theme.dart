@@ -7,6 +7,10 @@ class AppTheme {
   static const Color accent = Color(0xFF9C5A32);
   static const Color accentDark = Color(0xFF6B3D20);
 
+  /// "Pasto": the walking phase of interval training — a muted green that
+  /// sits with the earth palette and reads instantly as "not running".
+  static const Color walk = Color(0xFF5B7F5E);
+
   static ThemeData light = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(

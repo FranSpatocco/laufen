@@ -143,7 +143,7 @@ class _StartTrainingCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Elegí carrera libre, trote o caminata',
+                      'Carrera libre, trote, caminata o intervalos',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],

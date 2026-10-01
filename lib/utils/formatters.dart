@@ -23,4 +23,12 @@ class RunFormatters {
     final seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
   }
+
+  /// dd/mm/yyyy.
+  static String date(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  /// Short m:ss for interval durations (e.g. 90 → "1:30").
+  static String clock(int totalSeconds) =>
+      '${totalSeconds ~/ 60}:${(totalSeconds % 60).toString().padLeft(2, '0')}';
 }

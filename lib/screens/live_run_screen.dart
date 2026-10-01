@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import '../models/interval_plan.dart';
 import '../models/km_split.dart';
 import '../models/run_model.dart';
 import '../models/training_type.dart';
@@ -23,10 +25,15 @@ enum _PermissionStatus { checking, granted, denied }
 /// pace (see CLAUDE.md > Funcionalidad core). On finish the user chooses
 /// whether to save it; saving needs an account, so a guest is sent to log
 /// in first and the run is saved as soon as they come back signed in.
+///
+/// With an [intervalPlan] (TrainingType.intervals) it also shows a big
+/// "CORRÉ / CAMINÁ" banner with the countdown of the current stretch, and
+/// buzzes + beeps on every change so the runner doesn't need to look.
 class LiveRunScreen extends StatefulWidget {
   final TrainingType trainingType;
+  final IntervalPlan? intervalPlan;
 
-  const LiveRunScreen({super.key, this.trainingType = TrainingType.freeRun});
+  const LiveRunScreen({super.key, this.trainingType = TrainingType.freeRun, this.intervalPlan});
 
   @override
   State<LiveRunScreen> createState() => _LiveRunScreenState();
@@ -48,6 +55,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
   final _splitTracker = KmSplitTracker();
   bool _isTracking = false;
   bool _isFinished = false;
+  IntervalPhase? _lastPhase;
 
   @override
   void initState() {
@@ -78,9 +86,24 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
 
   void _startRun() {
     _stopwatch.start();
-    _uiTicker = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    _uiTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      _cueIntervalChange();
+      setState(() {});
+    });
     _positionSub = _locationService.positionStream().listen(_onPosition);
     setState(() => _isTracking = true);
+  }
+
+  void _cueIntervalChange() {
+    final plan = widget.intervalPlan;
+    if (plan == null) return;
+    final phase = plan.statusAt(_stopwatch.elapsed.inSeconds).phase;
+    if (_lastPhase != null && phase != _lastPhase) {
+      // No-ops on web; vibration + system beep on Android/iOS.
+      HapticFeedback.heavyImpact();
+      SystemSound.play(SystemSoundType.alert);
+    }
+    _lastPhase = phase;
   }
 
   /// No recreational runner sustains this — a jump faster than this between
@@ -145,6 +168,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       route: _route,
       type: widget.trainingType,
       splits: _splitTracker.finish(_stopwatch.elapsedMilliseconds / 1000),
+      intervals: widget.intervalPlan,
     );
 
     await _askToSave(run);
@@ -182,9 +206,9 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
         if (authService.currentUser == null) continue;
       }
 
-      FirestoreService().saveRun(authService.currentUser!.uid, run);
+      final id = FirestoreService().saveRun(authService.currentUser!.uid, run);
       Navigator.of(context).pushReplacement(
-        FadeSlideRoute(builder: (_) => RunDetailScreen(run: run)),
+        FadeSlideRoute(builder: (_) => RunDetailScreen(run: run.withId(id))),
       );
       return;
     }
@@ -281,6 +305,23 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
               ),
             ),
           ),
+        if (widget.intervalPlan != null)
+          Positioned(
+            bottom: 96 + viewPadding.bottom,
+            left: 24,
+            right: 24,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: _IntervalBanner(
+                  plan: widget.intervalPlan!,
+                  // Before starting, preview the first stretch at 0:00.
+                  status: widget.intervalPlan!.statusAt(_stopwatch.elapsed.inSeconds),
+                  started: _isTracking,
+                ),
+              ),
+            ),
+          ),
         Positioned(
           bottom: 24 + viewPadding.bottom,
           left: 24,
@@ -300,7 +341,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 18),
                   ),
                   onPressed: _startRun,
-                  child: const Text('Iniciar carrera'),
+                  child: Text(widget.intervalPlan != null ? 'Iniciar intervalos' : 'Iniciar carrera'),
                 ),
         ),
       ],
@@ -395,6 +436,89 @@ class _SaveRunSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _IntervalBanner extends StatelessWidget {
+  final IntervalPlan plan;
+  final IntervalStatus status;
+  final bool started;
+
+  const _IntervalBanner({required this.plan, required this.status, required this.started});
+
+  @override
+  Widget build(BuildContext context) {
+    final running = status.phase == IntervalPhase.run;
+    final color = running ? AppTheme.accent : AppTheme.walk;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(running ? Icons.directions_run : Icons.directions_walk, color: Colors.white, size: 32),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // AnimatedSwitcher so the word itself swaps with a fade.
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        running ? 'CORRÉ' : 'CAMINÁ',
+                        key: ValueKey(running),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      started
+                          ? 'Ronda ${status.round}'
+                          : '${RunFormatters.clock(plan.runSeconds)} correr · '
+                              '${RunFormatters.clock(plan.walkSeconds)} caminar',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                RunFormatters.clock(status.remainingSeconds),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: started ? status.progress : 0,
+              minHeight: 6,
+              color: Colors.white,
+              backgroundColor: Colors.white24,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -3,11 +3,12 @@ import '../models/training_type.dart';
 import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
 import '../widgets/reveal.dart';
+import 'interval_setup_screen.dart';
 import 'live_run_screen.dart';
 
 /// "Entrenar" tab: pick a training variant before starting to track
 /// (see CLAUDE.md > Funcionalidad core — same RunModel/live-tracking flow
-/// for all three, only the label/icon differ).
+/// for all of them; intervals go through a setup screen first).
 class TrainScreen extends StatelessWidget {
   final bool isGuest;
 
@@ -59,6 +60,13 @@ class _TrainingTypeCard extends StatelessWidget {
 
   const _TrainingTypeCard({required this.type});
 
+  String get _description => switch (type) {
+        TrainingType.freeRun => 'A tu ritmo, sin estructura',
+        TrainingType.jog => 'Suave, para sumar kilómetros',
+        TrainingType.walk => 'Para recuperar o empezar de a poco',
+        TrainingType.intervals => 'Alterná tramos de correr y caminar',
+      };
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -67,7 +75,11 @@ class _TrainingTypeCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.of(context).push(
-          FadeSlideRoute(builder: (_) => LiveRunScreen(trainingType: type)),
+          FadeSlideRoute(
+            builder: (_) => type == TrainingType.intervals
+                ? const IntervalSetupScreen()
+                : LiveRunScreen(trainingType: type),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -80,9 +92,19 @@ class _TrainingTypeCard extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  type.label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      type.label,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+                    ),
+                  ],
                 ),
               ),
               const Icon(Icons.chevron_right, color: Colors.grey),

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:laufen/models/content_model.dart';
+import 'package:laufen/models/user_profile.dart';
+import 'package:laufen/screens/edit_profile_screen.dart';
+import 'package:laufen/screens/interval_setup_screen.dart';
 import 'package:laufen/screens/landing_screen.dart';
 import 'package:laufen/widgets/animated_route_card.dart';
 import 'package:laufen/widgets/laufen_wordmark.dart';
@@ -54,6 +57,35 @@ void main() {
     await tester.pumpWidget(landing(onStart: () {}));
     await tester.pump(const Duration(seconds: 3));
 
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Interval setup adjusts times and fits a small phone', (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const MaterialApp(home: IntervalSetupScreen()));
+    await tester.pumpAndSettle();
+    expect(find.text('2:00'), findsOneWidget);
+
+    // "-15 s" on the running stretch: 2:00 -> 1:45.
+    await tester.tap(find.byTooltip('-15 s').first);
+    await tester.pump();
+    expect(find.text('1:45'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Edit profile form fits a small phone', (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const MaterialApp(
+      home: EditProfileScreen(uid: 'test', initial: UserProfile(name: 'Ana', age: 30)),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Ana'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

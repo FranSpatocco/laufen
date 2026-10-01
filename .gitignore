@@ -52,3 +52,6 @@ app.*.map.json
 
 # Kotlin/Gradle build cache
 /android/.kotlin/
+
+# Firebase emulators
+*-debug.log

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
+import 'interval_plan.dart';
 import 'km_split.dart';
 import 'training_type.dart';
 
@@ -17,6 +18,9 @@ class RunModel {
   /// route has no timestamps, so they can't be reconstructed afterwards.
   final List<KmSplit> splits;
 
+  /// Only for TrainingType.intervals: the run/walk durations used.
+  final IntervalPlan? intervals;
+
   const RunModel({
     this.id,
     required this.date,
@@ -26,7 +30,21 @@ class RunModel {
     required this.route,
     this.type = TrainingType.freeRun,
     this.splits = const [],
+    this.intervals,
   });
+
+  /// Same run once Firestore has assigned it an id (see FirestoreService.saveRun).
+  RunModel withId(String newId) => RunModel(
+        id: newId,
+        date: date,
+        distanceKm: distanceKm,
+        durationSeconds: durationSeconds,
+        avgPaceMinPerKm: avgPaceMinPerKm,
+        route: route,
+        type: type,
+        splits: splits,
+        intervals: intervals,
+      );
 
   /// The built-in example run guests see (models/sample_run.dart).
   bool get isSample => id == 'sample';
@@ -39,6 +57,7 @@ class RunModel {
         'route': route.map((p) => {'lat': p.latitude, 'lng': p.longitude}).toList(),
         'type': type.storageKey,
         'splits': splits.map((s) => s.toMap()).toList(),
+        if (intervals != null) 'intervals': intervals!.toMap(),
       };
 
   factory RunModel.fromMap(String id, Map<String, dynamic> map) {
@@ -58,6 +77,9 @@ class RunModel {
       splits: ((map['splits'] as List?) ?? const [])
           .map((s) => KmSplit.fromMap(Map<String, dynamic>.from(s as Map)))
           .toList(),
+      intervals: map['intervals'] == null
+          ? null
+          : IntervalPlan.fromMap(Map<String, dynamic>.from(map['intervals'] as Map)),
     );
   }
 }
