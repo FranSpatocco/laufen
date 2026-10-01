@@ -49,8 +49,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Landing fits a small phone without overflowing', (tester) async {
-    tester.view.physicalSize = const Size(360, 740);
+  testWidgets('Landing fits a phone screen with no scrolling', (tester) async {
+    // A typical phone viewport once status + navigation bars are taken out.
+    tester.view.physicalSize = const Size(360, 680);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -58,6 +59,21 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
 
     expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.text('Web · Android · iOS'), findsOneWidget);
+    expect(find.textContaining('Sin registro'), findsNothing);
+  });
+
+  testWidgets('Landing still scrolls on a very short screen', (tester) async {
+    tester.view.physicalSize = const Size(740, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(landing(onStart: () {}));
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
   });
 
   testWidgets('Interval setup adjusts times and fits a small phone', (tester) async {

@@ -28,6 +28,10 @@ class LandingScreen extends StatefulWidget {
 /// Above this width the hero splits into text + animated map side by side.
 const _wideBreakpoint = 900.0;
 
+/// Below this height a phone can't fit hero text + a useful map card, so
+/// the landing scrolls instead (e.g. a phone in landscape).
+const _minFitHeight = 600.0;
+
 class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin {
   late final Stream<LandingContent?> _content =
       widget.contentStream ?? ContentService().watchLandingContent();
@@ -86,6 +90,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= _wideBreakpoint;
+                  // Phones get a no-scroll layout where the animated card
+                  // takes whatever height is left. Only a very short screen
+                  // (landscape phone) or CMS sections fall back to scrolling.
+                  if (!wide && sections.isEmpty && constraints.maxHeight >= _minFitHeight) {
+                    return _buildFittedPhoneHero(context, heroTitle, heroSubtitle);
+                  }
                   final hero = wide
                       ? _buildWideHero(context, heroTitle, heroSubtitle)
                       : _buildNarrowHero(context, heroTitle, heroSubtitle);
@@ -141,6 +151,34 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFittedPhoneHero(BuildContext context, String title, String subtitle) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            children: [
+              _HeroText(
+                title: title,
+                subtitle: subtitle,
+                wide: false,
+                slice: _slice,
+                intro: _intro,
+                onStart: widget.onStart,
+                onLogin: _openLogin,
+              ),
+              const SizedBox(height: 16),
+              Expanded(child: AnimatedRouteCard(entrance: _slice(0.45, 0.85))),
+              const SizedBox(height: 14),
+              _FeatureChips(wide: false, slice: _slice),
+            ],
+          ),
         ),
       ),
     );
@@ -205,18 +243,18 @@ class _HeroText extends StatelessWidget {
     final words = title.split(' ').where((w) => w.isNotEmpty).toList();
     final titleStyle = (wide
             ? Theme.of(context).textTheme.displayMedium
-            : Theme.of(context).textTheme.headlineLarge)
+            : Theme.of(context).textTheme.headlineMedium)
         ?.copyWith(fontWeight: FontWeight.w800, height: 1.08, color: const Color(0xFF2B211B));
 
     return Column(
       crossAxisAlignment: align,
       children: [
         LaufenWordmark(
-          fontSize: wide ? 64 : 48,
+          fontSize: wide ? 64 : 42,
           color: AppTheme.accent,
           reveal: slice(0, 0.45),
         ),
-        SizedBox(height: wide ? 28 : 20),
+        SizedBox(height: wide ? 28 : 12),
         // Word-by-word stagger, each word on its own slice of the timeline.
         Wrap(
           alignment: wrapAlign,
@@ -232,7 +270,7 @@ class _HeroText extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: wide ? 16 : 10),
         _SlideUp(
           animation: slice(0.42, 0.72),
           child: ConstrainedBox(
@@ -248,7 +286,7 @@ class _HeroText extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 32),
+        SizedBox(height: wide ? 32 : 20),
         _PopIn(
           animation: slice(0.52, 0.86, Curves.easeOutBack),
           child: Wrap(
@@ -269,17 +307,18 @@ class _HeroText extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        _SlideUp(
-          animation: slice(0.62, 0.9),
-          offsetY: 8,
-          child: Text(
-            'Sin registro: probala ya, guardá tus carreras cuando quieras.',
-            textAlign: textAlign,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
-          ),
-        ),
+        // Desktop only: on phones every line counts to fit without scrolling.
         if (wide) ...[
+          const SizedBox(height: 10),
+          _SlideUp(
+            animation: slice(0.62, 0.9),
+            offsetY: 8,
+            child: Text(
+              'Sin registro: probala ya, guardá tus carreras cuando quieras.',
+              textAlign: textAlign,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+            ),
+          ),
           const SizedBox(height: 40),
           _FeatureChips(wide: true, slice: slice),
         ],
@@ -305,16 +344,20 @@ class _FeatureChips extends StatelessWidget {
   Widget build(BuildContext context) {
     return Wrap(
       alignment: wide ? WrapAlignment.start : WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
+      spacing: wide ? 8 : 6,
+      runSpacing: wide ? 8 : 6,
       children: [
         for (var i = 0; i < _features.length; i++)
           _SlideUp(
             animation: slice(0.66 + i * 0.06, 0.92 + i * 0.06),
             offsetY: 14,
             child: Chip(
-              avatar: Icon(_features[i].$1, size: 18, color: AppTheme.accentDark),
+              avatar: Icon(_features[i].$1, size: wide ? 18 : 15, color: AppTheme.accentDark),
               label: Text(_features[i].$2),
+              labelStyle: wide ? null : const TextStyle(fontSize: 12),
+              visualDensity: wide ? null : VisualDensity.compact,
+              materialTapTargetSize: wide ? null : MaterialTapTargetSize.shrinkWrap,
+              padding: wide ? null : const EdgeInsets.symmetric(horizontal: 2),
               backgroundColor: Colors.white.withValues(alpha: 0.75),
               side: BorderSide.none,
               shape: const StadiumBorder(),
