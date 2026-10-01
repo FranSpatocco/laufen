@@ -4,10 +4,18 @@ import '../services/auth_service.dart';
 import '../utils/theme.dart';
 import '../widgets/laufen_wordmark.dart';
 
-/// Email/password login and registration. On success, AuthGate's
-/// authStateChanges listener takes care of navigating to MainShell.
+/// Email/password + Google login and registration. Pushed on demand (from
+/// Perfil, Historial, the landing, or when saving a run) and pops with
+/// `true` on success, so the caller can continue what it was doing — e.g.
+/// live_run_screen.dart saves the pending run right after.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Opens in "Crear cuenta" mode instead of "Iniciar sesión".
+  final bool startRegistering;
+
+  /// Why we're asking, shown above the form (e.g. "to save your run").
+  final String? reason;
+
+  const LoginScreen({super.key, this.startRegistering = false, this.reason});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _authService = AuthService();
 
-  bool _isRegistering = false;
+  late bool _isRegistering = widget.startRegistering;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -37,8 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await _authService.signInWithGoogle();
-      // Pop back to AuthGate, which now shows MainShell for the signed-in user.
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _errorMessage = _friendlyError(e.toString()));
     } finally {
@@ -64,8 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
       }
-      // Pop back to AuthGate, which now shows MainShell for the signed-in user.
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _errorMessage = _friendlyError(e.toString()));
     } finally {
@@ -111,7 +117,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     Center(
                       child: LaufenWordmark(fontSize: 32, color: AppTheme.accent),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    if (widget.reason != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.lock_outline, color: AppTheme.accentDark, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(widget.reason!)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,

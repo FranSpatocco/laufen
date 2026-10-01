@@ -28,6 +28,9 @@ class RunModel {
     this.splits = const [],
   });
 
+  /// The built-in example run guests see (models/sample_run.dart).
+  bool get isSample => id == 'sample';
+
   Map<String, dynamic> toMap() => {
         'date': Timestamp.fromDate(date),
         'distance_km': distanceKm,

@@ -1,36 +1,39 @@
 import 'package:flutter/material.dart';
+
 import '../models/run_model.dart';
-import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+import '../services/runs_service.dart';
 import '../utils/formatters.dart';
 import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
 import '../widgets/animated_stat_tile.dart';
+import '../widgets/reveal.dart';
 import 'run_detail_screen.dart';
 
 /// "Inicio" tab: dashboard stats (client-side aggregation over
 /// users/{uid}/runs, see CLAUDE.md > Funcionalidad core) plus a shortcut
-/// into training and a peek at recent activity.
+/// into training and a peek at recent activity. A guest ([uid] null) sees
+/// the same dashboard built from the example run (RunsService).
+///
+/// Sections enter with a staggered Reveal (tiles first, then the CTA, then
+/// recent activity) so the screen builds itself up instead of popping in.
 class DashboardTab extends StatelessWidget {
+  final String? uid;
   final VoidCallback onStartTraining;
   final VoidCallback onViewHistory;
 
-  const DashboardTab({super.key, required this.onStartTraining, required this.onViewHistory});
+  const DashboardTab({super.key, required this.uid, required this.onStartTraining, required this.onViewHistory});
+
+  static const _stagger = Duration(milliseconds: 70);
 
   @override
   Widget build(BuildContext context) {
-    final uid = AuthService().currentUser!.uid;
-
     return StreamBuilder<List<RunModel>>(
-      stream: FirestoreService().watchRuns(uid),
+      stream: RunsService().watchRuns(uid),
       builder: (context, snapshot) {
         final runs = snapshot.data ?? const <RunModel>[];
         final totalKm = runs.fold<double>(0, (sum, r) => sum + r.distanceKm);
-        final bestPace = runs.isEmpty
-            ? 0.0
-            : runs.map((r) => r.avgPaceMinPerKm).reduce((a, b) => a < b ? a : b);
-        final longestKm =
-            runs.isEmpty ? 0.0 : runs.map((r) => r.distanceKm).reduce((a, b) => a > b ? a : b);
+        final bestPace = runs.isEmpty ? 0.0 : runs.map((r) => r.avgPaceMinPerKm).reduce((a, b) => a < b ? a : b);
+        final longestKm = runs.isEmpty ? 0.0 : runs.map((r) => r.distanceKm).reduce((a, b) => a > b ? a : b);
         final recentRuns = runs.take(3).toList();
 
         return SingleChildScrollView(
@@ -38,53 +41,70 @@ class DashboardTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 1.5,
-                children: [
-                  AnimatedStatTile(
-                    value: totalKm,
-                    formatter: RunFormatters.distanceKm,
-                    label: 'Total',
-                    icon: Icons.route_outlined,
-                  ),
-                  AnimatedStatTile(
-                    value: runs.length.toDouble(),
-                    formatter: (v) => v.round().toString(),
-                    label: 'Carreras',
-                    icon: Icons.event_repeat_outlined,
-                  ),
-                  AnimatedStatTile(
-                    value: bestPace,
-                    formatter: (v) => runs.isEmpty ? '--:--' : RunFormatters.pace(v),
-                    label: 'Mejor pace',
-                    icon: Icons.speed_outlined,
-                  ),
-                  AnimatedStatTile(
-                    value: longestKm,
-                    formatter: (v) => runs.isEmpty ? '--' : RunFormatters.distanceKm(v),
-                    label: 'Carrera más larga',
-                    icon: Icons.emoji_events_outlined,
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // 4 tiles in a row on desktop, 2x2 on phones.
+                  final wide = constraints.maxWidth >= 720;
+                  final tiles = [
+                    AnimatedStatTile(
+                      value: totalKm,
+                      formatter: RunFormatters.distanceKm,
+                      label: 'Total',
+                      icon: Icons.route_outlined,
+                    ),
+                    AnimatedStatTile(
+                      value: runs.length.toDouble(),
+                      formatter: (v) => v.round().toString(),
+                      label: 'Carreras',
+                      icon: Icons.event_repeat_outlined,
+                    ),
+                    AnimatedStatTile(
+                      value: bestPace,
+                      formatter: (v) => runs.isEmpty ? '--:--' : RunFormatters.pace(v),
+                      label: 'Mejor pace',
+                      icon: Icons.speed_outlined,
+                    ),
+                    AnimatedStatTile(
+                      value: longestKm,
+                      formatter: (v) => runs.isEmpty ? '--' : RunFormatters.distanceKm(v),
+                      label: 'Carrera más larga',
+                      icon: Icons.emoji_events_outlined,
+                    ),
+                  ];
+                  return GridView.count(
+                    crossAxisCount: wide ? 4 : 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: wide ? 1.9 : 1.5,
+                    children: [for (var i = 0; i < tiles.length; i++) Reveal(delay: _stagger * i, child: tiles[i])],
+                  );
+                },
               ),
               const SizedBox(height: 24),
-              _StartTrainingCard(onTap: onStartTraining),
+              Reveal(
+                delay: _stagger * 4,
+                child: _StartTrainingCard(onTap: onStartTraining),
+              ),
               if (recentRuns.isNotEmpty) ...[
                 const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Text('Actividad reciente', style: Theme.of(context).textTheme.titleMedium),
-                    const Spacer(),
-                    TextButton(onPressed: onViewHistory, child: const Text('Ver todo')),
-                  ],
+                Reveal(
+                  delay: _stagger * 5,
+                  child: Row(
+                    children: [
+                      Text('Actividad reciente', style: Theme.of(context).textTheme.titleMedium),
+                      const Spacer(),
+                      TextButton(onPressed: onViewHistory, child: const Text('Ver todo')),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 4),
-                for (final run in recentRuns) _RecentRunTile(run: run),
+                for (var i = 0; i < recentRuns.length; i++)
+                  Reveal(
+                    delay: _stagger * (6 + i),
+                    child: _RecentRunTile(run: recentRuns[i]),
+                  ),
               ],
             ],
           ),
@@ -158,12 +178,10 @@ class _RecentRunTile extends StatelessWidget {
         ),
         title: Text(RunFormatters.distanceKm(run.distanceKm)),
         subtitle: Text(
-          '${run.type.label} · ${RunFormatters.duration(run.durationSeconds)} · ${RunFormatters.pace(run.avgPaceMinPerKm)}',
+          '${run.isSample ? 'Ejemplo · ' : ''}${run.type.label} · ${RunFormatters.duration(run.durationSeconds)} · ${RunFormatters.pace(run.avgPaceMinPerKm)}',
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(
-          FadeSlideRoute(builder: (_) => RunDetailScreen(run: run)),
-        ),
+        onTap: () => Navigator.of(context).push(FadeSlideRoute(builder: (_) => RunDetailScreen(run: run))),
       ),
     );
   }

@@ -14,12 +14,15 @@ import '../utils/formatters.dart';
 import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
 import '../widgets/stat_display.dart';
+import 'login_screen.dart';
 import 'run_detail_screen.dart';
 
 enum _PermissionStatus { checking, granted, denied }
 
 /// Live run: GPS tracking on a map with a running timer, distance and
-/// pace, saved to Firestore on finish (see CLAUDE.md > Funcionalidad core).
+/// pace (see CLAUDE.md > Funcionalidad core). On finish the user chooses
+/// whether to save it; saving needs an account, so a guest is sent to log
+/// in first and the run is saved as soon as they come back signed in.
 class LiveRunScreen extends StatefulWidget {
   final TrainingType trainingType;
 
@@ -44,7 +47,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
   double _distanceMeters = 0;
   final _splitTracker = KmSplitTracker();
   bool _isTracking = false;
-  bool _isSaving = false;
+  bool _isFinished = false;
 
   @override
   void initState() {
@@ -132,7 +135,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
     _uiTicker?.cancel();
     _stopwatch.stop();
 
-    setState(() => _isSaving = true);
+    setState(() => _isFinished = true);
 
     final run = RunModel(
       date: DateTime.now(),
@@ -144,13 +147,47 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       splits: _splitTracker.finish(_stopwatch.elapsedMilliseconds / 1000),
     );
 
-    final uid = AuthService().currentUser!.uid;
-    FirestoreService().saveRun(uid, run);
+    await _askToSave(run);
+  }
 
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      FadeSlideRoute(builder: (_) => RunDetailScreen(run: run)),
-    );
+  /// Loops until the user either saves (signed in) or discards: backing
+  /// out of the login screen returns to the question instead of silently
+  /// losing the run.
+  Future<void> _askToSave(RunModel run) async {
+    final authService = AuthService();
+    while (mounted) {
+      final save = await showModalBottomSheet<bool>(
+        context: context,
+        isDismissible: false,
+        enableDrag: false,
+        // Bottom sheets stretch edge to edge by default — cap it on desktop.
+        constraints: const BoxConstraints(maxWidth: 560),
+        builder: (_) => _SaveRunSheet(run: run, isGuest: authService.currentUser == null),
+      );
+      if (!mounted) return;
+      if (save != true) {
+        Navigator.of(context).pop();
+        return;
+      }
+
+      if (authService.currentUser == null) {
+        await Navigator.of(context).push<bool>(
+          FadeSlideRoute(
+            builder: (_) => const LoginScreen(
+              reason: 'Iniciá sesión o creá una cuenta para guardar tu carrera.',
+            ),
+          ),
+        );
+        if (!mounted) return;
+        if (authService.currentUser == null) continue;
+      }
+
+      FirestoreService().saveRun(authService.currentUser!.uid, run);
+      Navigator.of(context).pushReplacement(
+        FadeSlideRoute(builder: (_) => RunDetailScreen(run: run)),
+      );
+      return;
+    }
   }
 
   @override
@@ -254,14 +291,8 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                     backgroundColor: Colors.red.shade600,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                   ),
-                  onPressed: _isSaving ? null : _finishRun,
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Finalizar'),
+                  onPressed: _isFinished ? null : _finishRun,
+                  child: const Text('Finalizar'),
                 )
               : FilledButton(
                   style: FilledButton.styleFrom(
@@ -296,6 +327,72 @@ class _PermissionDeniedView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SaveRunSheet extends StatelessWidget {
+  final RunModel run;
+  final bool isGuest;
+
+  const _SaveRunSheet({required this.run, required this.isGuest});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '¡Buen entrenamiento!',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                StatDisplay(value: RunFormatters.distanceKm(run.distanceKm), label: 'Distancia'),
+                StatDisplay(value: RunFormatters.duration(run.durationSeconds), label: 'Tiempo'),
+                StatDisplay(value: RunFormatters.pace(run.avgPaceMinPerKm), label: 'Pace'),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '¿Querés guardar esta carrera?',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (isGuest) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Para guardarla necesitás una cuenta: es gratis y te lleva un minuto.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+              ),
+            ],
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: Icon(isGuest ? Icons.login : Icons.save_outlined),
+              label: Text(isGuest ? 'Iniciar sesión y guardar' : 'Guardar carrera'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700),
+              child: const Text('Descartar'),
+            ),
           ],
         ),
       ),

@@ -18,7 +18,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Laufen: app de running hecha 100% en Flutter. Mapa en vivo, ritmo por km e historial de carreras, en web, Android e iOS.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,8 +31,41 @@
 
   <title>laufen</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Loading splash: Flutter web needs a moment to download and start its
+    engine, so instead of a blank page we show the wordmark right away in
+    plain HTML/CSS. flutter_bootstrap.js removes it on the first frame.
+  -->
+  <style>
+    @font-face {
+      font-family: 'Outfit';
+      src: url('assets/assets/fonts/Outfit-VariableFont_wght.ttf');
+      font-weight: 100 900;
+    }
+    html, body { margin: 0; height: 100%; background: #F3EEE4; }
+    #splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: radial-gradient(circle at 75% 20%, #F7E9D9, #F3EEE4 65%);
+      transition: opacity 0.35s ease;
+    }
+    #splash .word {
+      font-family: 'Outfit', system-ui, sans-serif; font-weight: 700;
+      font-size: 56px; color: #9C5A32; letter-spacing: -0.5px;
+    }
+    #splash .track {
+      width: 140px; height: 4px; border-radius: 4px; background: #E6D9C6; overflow: hidden;
+    }
+    #splash .track::after {
+      content: ''; display: block; width: 40%; height: 100%; border-radius: 4px;
+      background: #9C5A32; animation: run 1.1s ease-in-out infinite;
+    }
+    @keyframes run { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+  </style>
 </head>
 <body>
+  <div id="splash"><div class="word">laufen</div><div class="track"></div></div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
