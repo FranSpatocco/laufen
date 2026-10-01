@@ -19,6 +19,21 @@ class LocationService {
     return Geolocator.getPositionStream(locationSettings: _runSettings());
   }
 
+  /// Fixes for GPS calibration before a run starts (see GpsCalibration).
+  /// No distance filter: the runner is standing still, and the tracking
+  /// stream's 5 m filter would deliver a single fix and then go quiet.
+  /// No background/foreground-service setup either — the screen is on.
+  Stream<Position> calibrationStream() {
+    final settings = !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+        ? AndroidSettings(
+            accuracy: LocationAccuracy.best,
+            distanceFilter: 0,
+            intervalDuration: const Duration(seconds: 1),
+          )
+        : const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 0);
+    return Geolocator.getPositionStream(locationSettings: settings);
+  }
+
   /// A run lasts far longer than the screen timeout, and the OS stops
   /// delivering GPS to a backgrounded app — the timer kept going while the
   /// distance froze. Each platform needs its own opt-in to keep tracking

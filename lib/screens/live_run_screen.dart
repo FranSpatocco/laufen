@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+
+import '../models/gps_calibration.dart';
 import '../models/interval_plan.dart';
 import '../models/km_split.dart';
 import '../models/run_model.dart';
@@ -12,6 +14,7 @@ import '../models/training_type.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/location_service.dart';
+import '../services/run_cues.dart';
 import '../utils/formatters.dart';
 import '../utils/page_transitions.dart';
 import '../utils/theme.dart';
@@ -57,6 +60,13 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
   bool _isFinished = false;
   IntervalPhase? _lastPhase;
 
+  /// Between tapping "Iniciar" and the run actually starting: waiting for
+  /// a precise GPS fix (see GpsCalibration). The stopwatch isn't running.
+  bool _isCalibrating = false;
+  GpsCalibration? _calibration;
+  final _calibrationClock = Stopwatch();
+  Position? _lastCalibrationFix;
+
   @override
   void initState() {
     super.initState();
@@ -84,37 +94,101 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
     });
   }
 
-  void _startRun() {
+  /// "Iniciar": listen to the GPS but don't start the clock until the
+  /// signal is precise — otherwise the first seconds of a run (and its
+  /// first km split) are built on a fix that can be 50+ m off.
+  void _startCalibration() {
+    _calibration = GpsCalibration(requiredGoodFixes: kIsWeb ? 1 : 2);
+    _calibrationClock
+      ..reset()
+      ..start();
+    _positionSub = _locationService.calibrationStream().listen(_onPosition);
+    // Also re-checks readiness while no new fix arrives (the minimum time
+    // can pass between two fixes).
+    _uiTicker = Timer.periodic(const Duration(milliseconds: 250), (_) => _checkCalibration());
+    setState(() => _isCalibrating = true);
+  }
+
+  void _cancelCalibration() {
+    _positionSub?.cancel();
+    _uiTicker?.cancel();
+    _calibrationClock.stop();
+    setState(() => _isCalibrating = false);
+  }
+
+  void _checkCalibration() {
+    if (!_isCalibrating) return;
+    if (_calibration!.isReady(_calibrationClock.elapsed)) {
+      _beginTracking();
+    } else {
+      setState(() {});
+    }
+  }
+
+  /// Calibrated (or "Empezar igual"): start the clock and confirm with a
+  /// buzz, so the runner knows it's live without looking at the screen.
+  void _beginTracking() {
+    _uiTicker?.cancel();
+    _calibrationClock.stop();
+    // Swap the unfiltered calibration stream for the tracking one (5 m
+    // distance filter + screen-off/background setup).
+    _positionSub?.cancel();
+    _positionSub = _locationService.positionStream().listen(_onPosition);
+    // Seed the route with the last calibration fix, if it's usable, so the
+    // first segment counts from where the runner actually started.
+    final seed = _lastCalibrationFix;
+    if (seed != null && seed.accuracy <= _maxUsableAccuracyMeters) {
+      _lastPosition = seed;
+      _route.add(LatLng(seed.latitude, seed.longitude));
+    }
     _stopwatch.start();
+    _lastPhase = widget.intervalPlan?.statusAt(0).phase;
     _uiTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       _cueIntervalChange();
       setState(() {});
     });
-    _positionSub = _locationService.positionStream().listen(_onPosition);
-    setState(() => _isTracking = true);
+    RunCues.runStarted();
+    setState(() {
+      _isCalibrating = false;
+      _isTracking = true;
+    });
   }
 
   void _cueIntervalChange() {
     final plan = widget.intervalPlan;
     if (plan == null) return;
     final phase = plan.statusAt(_stopwatch.elapsed.inSeconds).phase;
-    if (_lastPhase != null && phase != _lastPhase) {
-      // No-ops on web; vibration + system beep on Android/iOS.
-      HapticFeedback.heavyImpact();
-      SystemSound.play(SystemSoundType.alert);
-    }
+    if (_lastPhase != null && phase != _lastPhase) RunCues.phaseChanged(phase);
     _lastPhase = phase;
   }
+
+  /// Fixes worse than this are dropped while tracking (see _onPosition).
+  static const _maxUsableAccuracyMeters = 30.0;
 
   /// No recreational runner sustains this — a jump faster than this between
   /// two fixes is a GPS glitch, not real movement.
   static const _maxPlausibleSpeedMetersPerSecond = 8.0;
 
   void _onPosition(Position position) {
+    if (_isCalibrating) {
+      // On a phone, the first fix of a new stream can be a cached,
+      // minutes-old one — it says nothing about the signal right now. Not
+      // on the web: browsers re-report a still position with the time it
+      // was first obtained, so this check would drop every valid fix.
+      if (!kIsWeb && DateTime.now().difference(position.timestamp) > const Duration(seconds: 10)) return;
+      _calibration!.addFix(position.accuracy);
+      _lastCalibrationFix = position;
+      final point = LatLng(position.latitude, position.longitude);
+      _currentPosition = point;
+      _mapController.move(point, _mapController.camera.zoom);
+      _checkCalibration();
+      return;
+    }
+
     // Reject low-accuracy fixes (e.g. weak GPS signal indoors, falling back
     // to network/wifi positioning) — a single bad reading can jump the
     // route hundreds of km and wreck both the map and the distance math.
-    if (position.accuracy > 30) return;
+    if (position.accuracy > _maxUsableAccuracyMeters) return;
 
     final point = LatLng(position.latitude, position.longitude);
     if (_lastPosition != null) {
@@ -197,9 +271,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       if (authService.currentUser == null) {
         await Navigator.of(context).push<bool>(
           FadeSlideRoute(
-            builder: (_) => const LoginScreen(
-              reason: 'Iniciá sesión o creá una cuenta para guardar tu carrera.',
-            ),
+            builder: (_) => const LoginScreen(reason: 'Iniciá sesión o creá una cuenta para guardar tu carrera.'),
           ),
         );
         if (!mounted) return;
@@ -207,9 +279,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       }
 
       final id = FirestoreService().saveRun(authService.currentUser!.uid, run);
-      Navigator.of(context).pushReplacement(
-        FadeSlideRoute(builder: (_) => RunDetailScreen(run: run.withId(id))),
-      );
+      Navigator.of(context).pushReplacement(FadeSlideRoute(builder: (_) => RunDetailScreen(run: run.withId(id))));
       return;
     }
   }
@@ -236,37 +306,44 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
       children: [
         FlutterMap(
           mapController: _mapController,
-          options: MapOptions(
-            initialCenter: _currentPosition!,
-            initialZoom: 17,
-          ),
+          options: MapOptions(initialCenter: _currentPosition!, initialZoom: 17),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.laufen.laufen',
             ),
-            PolylineLayer(polylines: [
-              // flutter_map asserts on an empty point list when computing
-              // bounds for culling, so only draw once there's a real line.
-              if (_route.length >= 2)
-                Polyline(points: _route, strokeWidth: 4, color: AppTheme.accent),
-            ]),
-            MarkerLayer(markers: [
-              Marker(
-                point: _currentPosition!,
-                width: 20,
-                height: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.accent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+            PolylineLayer(
+              polylines: [
+                // flutter_map asserts on an empty point list when computing
+                // bounds for culling, so only draw once there's a real line.
+                if (_route.length >= 2) Polyline(points: _route, strokeWidth: 4, color: AppTheme.accent),
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: _currentPosition!,
+                  width: 20,
+                  height: 20,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
                   ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
         ),
+        if (_isCalibrating)
+          Positioned(
+            top: 16 + viewPadding.top,
+            left: 16,
+            right: 16,
+            child: _CalibrationCard(calibration: _calibration!, elapsed: _calibrationClock.elapsed),
+          ),
         if (_isTracking)
           Positioned(
             top: 16 + viewPadding.top,
@@ -281,10 +358,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        StatDisplay(
-                          value: RunFormatters.duration(_stopwatch.elapsed.inSeconds),
-                          label: 'Tiempo',
-                        ),
+                        StatDisplay(value: RunFormatters.duration(_stopwatch.elapsed.inSeconds), label: 'Tiempo'),
                         StatDisplay(value: RunFormatters.distanceKm(_distanceKm), label: 'Distancia'),
                         StatDisplay(value: RunFormatters.pace(_avgPaceMinPerKm), label: 'Pace'),
                       ],
@@ -294,10 +368,8 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                       Text(
                         'Km ${_splitTracker.completed.length}: '
                         '${RunFormatters.pace(_splitTracker.completed.last.paceMinPerKm)}',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: AppTheme.accentDark,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(color: AppTheme.accentDark, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ],
@@ -326,7 +398,13 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
           bottom: 24 + viewPadding.bottom,
           left: 24,
           right: 24,
-          child: _isTracking
+          child: _isCalibrating
+              ? _CalibrationButtons(
+                  canStartAnyway: _calibration!.canStartAnyway(_calibrationClock.elapsed),
+                  onCancel: _cancelCalibration,
+                  onStartAnyway: _beginTracking,
+                )
+              : _isTracking
               ? FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red.shade600,
@@ -340,7 +418,7 @@ class _LiveRunScreenState extends State<LiveRunScreen> {
                     backgroundColor: AppTheme.accent,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                   ),
-                  onPressed: _startRun,
+                  onPressed: _startCalibration,
                   child: Text(widget.intervalPlan != null ? 'Iniciar intervalos' : 'Iniciar carrera'),
                 ),
         ),
@@ -362,10 +440,7 @@ class _PermissionDeniedView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Laufen necesita acceso a tu ubicación para trackear la carrera.',
-              textAlign: TextAlign.center,
-            ),
+            const Text('Laufen necesita acceso a tu ubicación para trackear la carrera.', textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
           ],
@@ -491,7 +566,7 @@ class _IntervalBanner extends StatelessWidget {
                       started
                           ? 'Ronda ${status.round}'
                           : '${RunFormatters.clock(plan.runSeconds)} correr · '
-                              '${RunFormatters.clock(plan.walkSeconds)} caminar',
+                                '${RunFormatters.clock(plan.walkSeconds)} caminar',
                       style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
@@ -520,6 +595,101 @@ class _IntervalBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CalibrationCard extends StatelessWidget {
+  final GpsCalibration calibration;
+  final Duration elapsed;
+
+  const _CalibrationCard({required this.calibration, required this.elapsed});
+
+  @override
+  Widget build(BuildContext context) {
+    final accuracy = calibration.lastAccuracyMeters;
+    final weak = calibration.canStartAnyway(elapsed);
+    final quality = calibration.quality;
+    final color = Color.lerp(Colors.red.shade400, AppTheme.walk, quality)!;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Calibrando GPS…',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  accuracy == null ? 'Buscando señal' : '± ${accuracy.round()} m',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: color),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: quality,
+                minHeight: 6,
+                color: color,
+                backgroundColor: color.withValues(alpha: 0.15),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              weak
+                  ? 'La señal está débil. Podés empezar igual: la distancia puede ser menos precisa.'
+                  : 'Quedate quieto unos segundos, mejor al aire libre. La carrera arranca sola y el '
+                        'celular vibra para avisarte.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CalibrationButtons extends StatelessWidget {
+  final bool canStartAnyway;
+  final VoidCallback onCancel;
+  final VoidCallback onStartAnyway;
+
+  const _CalibrationButtons({required this.canStartAnyway, required this.onCancel, required this.onStartAnyway});
+
+  @override
+  Widget build(BuildContext context) {
+    const padding = EdgeInsets.symmetric(vertical: 18);
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(padding: padding, backgroundColor: Colors.white),
+            onPressed: onCancel,
+            child: const Text('Cancelar'),
+          ),
+        ),
+        if (canStartAnyway) ...[
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.accent, padding: padding),
+              onPressed: onStartAnyway,
+              child: const Text('Empezar igual'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

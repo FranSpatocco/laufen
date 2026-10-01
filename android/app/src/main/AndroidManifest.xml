@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Run cues: vibrate when the run starts and on every interval change
+         (MainActivity.kt, "laufen/run_cues" channel). -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="laufen"
         android:name="${applicationName}"
