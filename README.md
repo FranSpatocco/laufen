@@ -1,5 +1,7 @@
 # Laufen 🏃
 
+[![CI](https://github.com/FranSpatocco/laufen/actions/workflows/ci.yml/badge.svg)](https://github.com/FranSpatocco/laufen/actions/workflows/ci.yml)
+
 App de tracking de running multiplataforma (Web, Android, iOS) hecha 100% en Flutter, inspirada en Strava. Pieza de portfolio para demostrar Flutter de punta a punta: UI, animaciones, estado, GPS, mapas y un backend real en Firebase.
 
 **Demo en vivo:** https://laufen-app.web.app — se prueba en un clic, sin registrarse.
@@ -30,6 +32,15 @@ App de tracking de running multiplataforma (Web, Android, iOS) hecha 100% en Flu
 - **geolocator** para el GPS, **google_sign_in** para el login nativo.
 
 Sin paquetes de estado ni de animación: el proyecto se mantiene con pocas dependencias a propósito.
+
+## Decisiones técnicas
+
+- **flutter_map + OpenStreetMap en lugar de Google Maps:** sin API key ni facturación, y el repo se puede clonar y correr tal cual.
+- **Sin paquetes de estado ni de animación:** `setState` + servicios alcanzan para el tamaño de la app; menos dependencias, menos superficie para romperse.
+- **Parciales interpolados:** el cruce de cada km se calcula entre dos lecturas de GPS, en vez de tomar la lectura más cercana: el ritmo de cada km sale más preciso.
+- **Modo invitado:** la cuenta se pide recién al guardar una carrera; quien evalúa la app la recorre entera sin registrarse.
+
+> Desarrollado con Claude Code como asistente de programación. Las decisiones de producto, diseño y arquitectura son mías; el contexto está en `CLAUDE.md`.
 
 ## Correr el proyecto
 

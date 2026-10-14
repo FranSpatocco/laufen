@@ -126,3 +126,7 @@ Inspirado en Strava, con una navegación más completa (a pedido explícito del 
 * Priorizar que el proyecto compile y corra en cada paso, no dejar features a medio hacer entre sesiones.
 * No agregar dependencias nuevas (paquetes pub.dev) sin que quede claro por qué — este proyecto tiene que quedar limpio para mostrar en una entrevista.
 * Explicar brevemente las decisiones de arquitectura no obvias, en comentarios cortos en el código, pensando en que alguien de RRHH técnico lo puede llegar a revisar.
+
+## Commits
+
+- Mensajes de commit en inglés, formato Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`), en imperativo y neutros: describir el cambio, no el contexto personal ni decisiones de negocio pendientes.
